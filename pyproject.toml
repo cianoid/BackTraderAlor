@@ -1,0 +1,9 @@
+[project]
+name = "backtrader_alor"
+dynamic = ["version"]
+dependencies = [
+    "alor_py @ git+https://github.com/cianoid/AlorPy@cf2443aa66d492be879efe5c8073d8c3e9d9bca9",
+    "backtrader"
+]
+description = "Провайдер для автоторговли в BackTrader из Alor Open API "
+readme = "README.md"
