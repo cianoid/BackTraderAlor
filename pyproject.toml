@@ -1,5 +1,5 @@
 [project]
-name = "backtrader-alor"
+name = "backtrader_alor"
 dependencies = [
     "alor @ git+https://github.com/cianoid/alor@2024.01.17",
     "backtrader==1.9.78.123"
