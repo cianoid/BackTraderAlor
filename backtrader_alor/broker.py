@@ -7,7 +7,7 @@ from backtrader import BrokerBase, BuyOrder, Order, SellOrder
 from backtrader.position import Position
 from backtrader.utils.py3 import with_metaclass
 
-from . import Store
+from .store import Store
 
 
 class MetaBroker(BrokerBase.__class__):  # noqa

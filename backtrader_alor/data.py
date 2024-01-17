@@ -7,7 +7,7 @@ from backtrader import TimeFrame, date2num
 from backtrader.feed import AbstractDataBase
 from backtrader.utils.py3 import with_metaclass
 
-from . import Store
+from .store import Store
 
 
 class MetaData(AbstractDataBase.__class__):
