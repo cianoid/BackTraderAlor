@@ -24,18 +24,17 @@ class Broker(with_metaclass(MetaBroker, BrokerBase)):
 
     logger = logging.getLogger("Broker")  # Будем вести лог
 
-    def __init__(self):
+    def __init__(self, store: Store):
         super(Broker, self).__init__()
-        self.store = Store()  # Хранилище Алор
+        self.store = store  # Хранилище Алор
         self.notifs = collections.deque()  # Очередь уведомлений брокера о заявках
         self.startingcash = self.cash = 0  # Стартовые и текущие свободные средства
         self.startingvalue = self.value = 0  # Стартовая и текущая стоимость позиций
         self.positions = collections.defaultdict(Position)  # Список позиций
         self.orders = collections.OrderedDict()  # Список заявок, отправленных на биржу
         self.ocos = {}  # Список связанных заявок (One Cancel Others)
-        self.pcs = collections.defaultdict(
-            collections.deque
-        )  # Очередь всех родительских/дочерних заявок (Parent - Children)
+        # Очередь всех родительских/дочерних заявок (Parent - Children)
+        self.pcs = collections.defaultdict(collections.deque)
 
         self.store.provider.on_position = self.on_position  # Обработка позиций
         self.store.provider.on_trade = self.on_trade  # Обработка сделок

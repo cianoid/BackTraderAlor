@@ -2,6 +2,7 @@ import csv
 import logging
 import os.path
 from datetime import datetime, time, timedelta
+from pathlib import Path
 from threading import Event, Thread  # Поток и событие остановки потока получения новых бар по расписанию биржи
 from uuid import uuid4  # Номера расписаний должны быть уникальными во времени и пространстве
 
@@ -27,8 +28,7 @@ class Data(with_metaclass(MetaData, AbstractDataBase)):
         ("schedule", None),  # Расписание работы биржи. Если не задано, то берем из подписки
         ("live_bars", False),  # False - только история, True - история и новые бары
     )
-    datapath = os.path.join("..", "..", "Data", "Alor", "")  # Путь до файла истории
-    delimiter = "\t"  # Разделитель значений в файле истории. По умолчанию табуляция
+    delimiter = ","  # Разделитель значений в файле истории. По умолчанию табуляция
     dt_format = "%d.%m.%Y %H:%M"  # Формат представления даты и времени в файле истории. По умолчанию русский формат
 
     def islive(self):
@@ -36,28 +36,30 @@ class Data(with_metaclass(MetaData, AbstractDataBase)):
         за другим"""
         return self.p.live_bars
 
-    def __init__(self):
-        self.store = Store()  # Хранилище Алор
-        self.intraday = self.p.timeframe in (
-            TimeFrame.Minutes,
-            TimeFrame.Seconds,
-        )  # Внутридневной временной интервал. Алор измеряет внутридневные интервалы в секундах
-        self.board, self.symbol = self.store.provider.dataname_to_board_symbol(
-            self.p.dataname
-        )  # По тикеру получаем код режима торгов и тикера
-        self.exchange = self.store.provider.get_exchange(
-            self.board, self.symbol
-        )  # Биржа тикера. В Алор запросы выполняются по коду биржи и тикера
+    def __init__(self, cache_path: Path):
+        try:
+            if not cache_path.exists():
+                cache_path.mkdir(parents=True)
+        except:  # noqa: E722
+            # fallback
+            cache_path = Path(__file__).parent.parent / "alor_cache"
+
+        # Хранилище Алор
+        self.store = Store()
+        # Внутридневной временной интервал. Алор измеряет внутридневные интервалы в секундах
+        self.intraday = self.p.timeframe in (TimeFrame.Minutes, TimeFrame.Seconds)
+        # По тикеру получаем код режима торгов и тикера
+        self.board, self.symbol = self.store.provider.dataname_to_board_symbol(self.p.dataname)
+        # Биржа тикера. В Алор запросы выполняются по коду биржи и тикера
+        self.exchange = self.store.provider.get_exchange(self.board, self.symbol)
         self.portfolio = self.store.provider.get_account(self.board, self.p.account_id)["portfolio"]  # Портфель тикера
-        self.alor_timeframe = self.bt_timeframe_to_alor_timeframe(
-            self.p.timeframe, self.p.compression
-        )  # Конвертируем временной интервал из BackTrader в Алор
-        self.tf = self.bt_timeframe_to_tf(
-            self.p.timeframe, self.p.compression
-        )  # Конвертируем временной интервал из BackTrader для имени файла истории и расписания
+        # Конвертируем временной интервал из BackTrader в Алор
+        self.alor_timeframe = self.bt_timeframe_to_alor_timeframe(self.p.timeframe, self.p.compression)
+        # Конвертируем временной интервал из BackTrader для имени файла истории и расписания
+        self.tf = self.bt_timeframe_to_tf(self.p.timeframe, self.p.compression)
         self.file = f"{self.board}.{self.symbol}_{self.tf}"  # Имя файла истории
         self.logger = logging.getLogger(f"Data.{self.file}")  # Будем вести лог
-        self.file_name = f"{self.datapath}{self.file}.txt"  # Полное имя файла истории
+        self.file_name = cache_path / f"{self.file}.csv"  # Полное имя файла истории
         self.history_bars = []  # Исторические бары из файла и истории после проверки на соответствие условиям выборки
         self.guid = None  # Идентификатор подписки/расписания на историю цен
         self.exit_event = Event()  # Определяем событие выхода из потока
@@ -441,9 +443,9 @@ class Data(with_metaclass(MetaData, AbstractDataBase)):
             with open(self.file_name, "w", newline="") as file:  # Создаем файл
                 writer = csv.writer(file, delimiter=self.delimiter)  # Данные в строке разделены табуляцией
                 writer.writerow(bar.keys())  # Записываем заголовок в файл
-        with open(
-            self.file_name, "a", newline=""
-        ) as file:  # Открываем файл на добавление в конец. Ставим newline, чтобы в Windows не создавались пустые
+
+        with open(self.file_name, "a", newline="") as file:
+            # Открываем файл на добавление в конец. Ставим newline, чтобы в Windows не создавались пустые
             # строки в файле
             writer = csv.writer(file, delimiter=self.delimiter)  # Данные в строке разделены табуляцией
             csv_row = bar.copy()  # Копируем бар для того, чтобы изменить формат даты

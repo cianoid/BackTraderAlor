@@ -1,3 +1,3 @@
 pre-commit==3.6.0
-alor @ git+https://github.com/cianoid/alor@2024.01.17
+alor @ git+https://github.com/cianoid/alor@2024.03.07
 backtrader==1.9.78.123
