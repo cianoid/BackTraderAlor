@@ -39,7 +39,7 @@ class Store(with_metaclass(MetaSingleton, object)):
         """Возвращает новый экземпляр класса брокера с заданными параметрами"""
         return cls.BrokerCls(*args, **kwargs)
 
-    def __init__(self, provider=Alor()):
+    def __init__(self, provider: Alor):
         super(Store, self).__init__()
         self.notifs = deque()  # Уведомления хранилища
         self.provider = provider  # Подключаемся ко всем торговым счетам
